@@ -90,7 +90,7 @@ class AI(BaseAI):
       #thief.move(thief.x+random.randrange(-1,1,1), thief.y+random.randrange(-1,1,1))
       if thief.owner is self.playerID:
         s.clear()
-        s.append(thief.x, thief.y)
+        s.append((thief.x, thief.y))
         if s and self.ends:
           path = self.pathFind(s, self.ends)
           for i in range(thief.maxMovement - 1):
@@ -102,8 +102,12 @@ class AI(BaseAI):
   ##This function is called each time it is your turn
   ##Return true to end your turn, return false to ask the server for updated information
   def run(self):
+    ends = collections.deque
+    for trap in self.traps:
+      if trap.owner != self.playerID and trap.trapType == 0:
+        self.ends.append(trap)
     self.spawn(self.findEntryPoints())
-    #self.move()
+    self.move()
     return 1
 
   def __init__(self, conn):
