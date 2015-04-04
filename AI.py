@@ -18,6 +18,7 @@ class AI(BaseAI):
 
   ends = collections.deque()
   total = 0
+  BOMBER, DIGGER, NINJA, GUIDE, SLAVE = range(5)
   ##This function is called once, before your first turn
   def init(self):
     pass
@@ -84,30 +85,30 @@ class AI(BaseAI):
     return entryPoints
 
   def spawn(self, entryPoints):
+    thiefType = self.NINJA
+    self.count(thiefType)
     for entryPoint in entryPoints:
       if self.total < 10:
-        print ("I only have {}. I think I'll spawn another.".format(self.total))
         self.total = self.total + 1
-        self.players[self.playerID].purchaseThief(entryPoint[0], entryPoint[1], 4)
+        self.players[self.playerID].purchaseThief(entryPoint[0], entryPoint[1], thiefType)
     pass
 
-  def count(self):
+  def count(self, thiefType):
     self.total = 0
     for thief in self.thiefs:
-      if thief.owner == self.playerID:
+      if thief.owner == self.playerID and thief.thiefType == thiefType:
         self.total = self.total + 1
     return self.total
 
   def move(self):
     s = collections.deque()
     for thief in self.thiefs:
-      #thief.move(thief.x+random.randrange(-1,1,1), thief.y+random.randrange(-1,1,1))
       if thief.owner is self.playerID:
         s.clear()
         s.append((thief.x, thief.y))
         if s and self.ends:
           path = self.pathFind(s, self.ends)
-          for i in range(thief.maxMovement - 1):
+          for i in range(thief.maxMovement):
             if not path:
               break
             new = path.pop()
@@ -117,7 +118,8 @@ class AI(BaseAI):
   ##Return true to end your turn, return false to ask the server for updated information
   def run(self):
     self.ends = self.setEnds()
-    self.spawn(self.findEntryPoints())
+    if self.roundTurnNumber > 1:
+      self.spawn(self.findEntryPoints())
     self.move()
     return 1
 
