@@ -17,7 +17,7 @@ class AI(BaseAI):
     return "password"
 
   ends = collections.deque()
-
+  total = 0
   ##This function is called once, before your first turn
   def init(self):
     pass
@@ -28,18 +28,22 @@ class AI(BaseAI):
 
   def mySide(self, x):
     if self.playerID == 0:
-      return x <= self.mapWidth/2
-    return x > self.mapWidth/2
-  
+      return x < self.mapWidth/2
+    return x >= self.mapWidth/2
+
+  def tileAt(self, coords):
+    return self.tiles[coords[0] * self.mapHeight + coords[1]]
+
   def path(self, x, y, startx, starty):
     if x >= 0 and x < self.mapWidth and y >= 0 and y < self.mapHeight:
-      return ((startx <= self.mapWidth/2) != (x <= self.mapWidth/2)) and self.tiles[x * self.mapHeight + y] != 2 
-  
-  def setStarts(self): # just 1 for now
-    starts = collections.deque()
-    for thief in self.thiefs:
-      starts.appendleft((thief.x, thief.y))
-    return starts
+      return ((self.mySide(startx)) == (self.mySide(x))) and self.tiles[x * self.mapHeight + y].type != 2 
+
+  def setEnds(self):
+    ends = collections.deque()
+    for trap in self.traps:
+      if trap.owner != self.playerID and trap.trapType == 0:
+        ends.appendleft((trap.x, trap.y))
+    return ends
 
   def neighbors(self, tile):
     n = []
@@ -81,11 +85,21 @@ class AI(BaseAI):
 
   def spawn(self, entryPoints):
     for entryPoint in entryPoints:
-      self.players[self.playerID].purchaseThief(entryPoint[0], entryPoint[1], 4)
-      pass
+      if self.total < 10:
+        print ("I only have {}. I think I'll spawn another.".format(self.total))
+        self.total = self.total + 1
+        self.players[self.playerID].purchaseThief(entryPoint[0], entryPoint[1], 4)
+    pass
+
+  def count(self):
+    self.total = 0
+    for thief in self.thiefs:
+      if thief.owner == self.playerID:
+        self.total = self.total + 1
+    return self.total
 
   def move(self):
-    s = self.setStarts()
+    s = collections.deque()
     for thief in self.thiefs:
       #thief.move(thief.x+random.randrange(-1,1,1), thief.y+random.randrange(-1,1,1))
       if thief.owner is self.playerID:
@@ -97,15 +111,12 @@ class AI(BaseAI):
             if not path:
               break
             new = path.pop()
-            thief.move(path[0], path[1])
+            thief.move(new[0], new[1])
 
   ##This function is called each time it is your turn
   ##Return true to end your turn, return false to ask the server for updated information
   def run(self):
-    ends = collections.deque
-    for trap in self.traps:
-      if trap.owner != self.playerID and trap.trapType == 0:
-        self.ends.append(trap)
+    self.ends = self.setEnds()
     self.spawn(self.findEntryPoints())
     self.move()
     return 1
